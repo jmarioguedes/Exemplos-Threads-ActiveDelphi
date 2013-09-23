@@ -123,34 +123,22 @@ type
 var
   rInfoLinha: TInfoLinha;
 begin
-  if (Length(Trim(ALinhaArquivo)) = 0) then
-  begin
-    Exit;
-  end;
+  rInfoLinha.ID := StrToInt(Trim(Copy(ALinhaArquivo, 1, 7)));
+  rInfoLinha.NomeCliente := Trim(Copy(ALinhaArquivo, 8, 100));
+  rInfoLinha.DataCompra := StrToDate(Trim(Copy(ALinhaArquivo, 108, 10)));
+  rInfoLinha.Estado := Trim(Copy(ALinhaArquivo, 118, 2));
+  rInfoLinha.ValorCompra := StrToCurr(Trim(Copy(ALinhaArquivo, 120, 10)));
+  rInfoLinha.ChaveNFE := Trim(Copy(ALinhaArquivo, 130, 44));
+  rInfoLinha.Observacoes := Trim(Copy(ALinhaArquivo, 174, 27));
 
-  try
-    rInfoLinha.ID := StrToInt(Trim(Copy(ALinhaArquivo, 1, 7)));
-    rInfoLinha.NomeCliente := Trim(Copy(ALinhaArquivo, 8, 100));
-    rInfoLinha.DataCompra := StrToDate(Trim(Copy(ALinhaArquivo, 108, 10)));
-    rInfoLinha.Estado := Trim(Copy(ALinhaArquivo, 118, 2));
-    rInfoLinha.ValorCompra := StrToCurr(Trim(Copy(ALinhaArquivo, 120, 10)));
-    rInfoLinha.ChaveNFE := Trim(Copy(ALinhaArquivo, 130, 44));
-    rInfoLinha.Observacoes := Trim(Copy(ALinhaArquivo, 174, 27));
-
-    Self.FQuery.ParamByName('PID').Value := rInfoLinha.ID;
-    Self.FQuery.ParamByName('PCLIENTE').Value := rInfoLinha.NomeCliente;
-    Self.FQuery.ParamByName('PDATACOMPRA').Value := rInfoLinha.DataCompra;
-    Self.FQuery.ParamByName('PESTADO').Value := rInfoLinha.Estado;
-    Self.FQuery.ParamByName('PVALORCOMPRA').Value := rInfoLinha.ValorCompra;
-    Self.FQuery.ParamByName('PNFE').Value := rInfoLinha.ChaveNFE;
-    Self.FQuery.ParamByName('POBSERVACOES').Value := rInfoLinha.Observacoes;
-    Self.FQuery.ExecSQL;
-  except
-    on E: Exception do
-    begin
-      Sleep(10);
-    end;
-  end;
+  Self.FQuery.ParamByName('PID').Value := rInfoLinha.ID;
+  Self.FQuery.ParamByName('PCLIENTE').Value := rInfoLinha.NomeCliente;
+  Self.FQuery.ParamByName('PDATACOMPRA').Value := rInfoLinha.DataCompra;
+  Self.FQuery.ParamByName('PESTADO').Value := rInfoLinha.Estado;
+  Self.FQuery.ParamByName('PVALORCOMPRA').Value := rInfoLinha.ValorCompra;
+  Self.FQuery.ParamByName('PNFE').Value := rInfoLinha.ChaveNFE;
+  Self.FQuery.ParamByName('POBSERVACOES').Value := rInfoLinha.Observacoes;
+  Self.FQuery.ExecSQL;
 end;
 
 end.
