@@ -3,24 +3,23 @@ unit Unt_Importacao;
 interface
 
 uses
-  System.Classes, PgAccess;
+  System.Classes, PgAccess, Unt_Gerenciador;
 
 type
 
   TImportador = class(TThread)
   private
-    FDatabase         : TPgConnection;
-    FQuery            : TPgQuery;
-    FInicio           : TDateTime;
-    FFim              : TDateTime;
-    FArquivo          : string;
-    FProgressBarHandle: THandle;
+    FGerenciador: TGerenciador;
+    FDatabase   : TPgConnection;
+    FQuery      : TPgQuery;
+    FInicio     : TDateTime;
+    FFim        : TDateTime;
     function GetTempoSegundos: Integer;
     procedure RegistrarNoBanco(ALinhaArquivo: string);
   protected
     procedure Execute; override;
   public
-    constructor Create(const ANomeArquivo: string; const AProgressBarHandle: THandle); reintroduce;
+    constructor Create(AGerenciador: TGerenciador); reintroduce;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     property TempoSegundos: Integer read GetTempoSegundos;
@@ -59,21 +58,21 @@ begin
   Self.FDatabase.Free;
 end;
 
-constructor TImportador.Create(const ANomeArquivo: string; const AProgressBarHandle: THandle);
+constructor TImportador.Create(AGerenciador: TGerenciador);
 begin
   inherited Create(True);
   Self.FInicio := Now;
-  Self.FArquivo := ANomeArquivo;
-  Self.FProgressBarHandle := AProgressBarHandle;
+  Self.FGerenciador := AGerenciador;
 end;
 
 procedure TImportador.Execute;
 var
   _arquivo: TextFile;
   sLinha  : string;
+  bRet    : Boolean;
 begin
   inherited;
-  Self.NameThreadForDebugging(Self.FArquivo);
+  Self.NameThreadForDebugging(Self.FGerenciador.NomeArquivo);
 
   Self.FDatabase.LoginPrompt := False;
   Self.FDatabase.Username := 'postgres';
@@ -84,7 +83,7 @@ begin
 
   Self.FQuery.Prepare;
 
-  AssignFile(_arquivo, Self.FArquivo);
+  AssignFile(_arquivo, Self.FGerenciador.NomeArquivo);
   try
     Reset(_arquivo);
     while not Eof(_arquivo) do
@@ -93,7 +92,7 @@ begin
 
       Self.RegistrarNoBanco(sLinha);
 
-      SendMessage(Self.FProgressBarHandle, PBM_DELTAPOS, Length(sLinha) + 2, 0);
+      SendMessage(Self.FGerenciador.ProgressBarHandle, PBM_DELTAPOS, Length(sLinha) + 2, 0);
     end;
   finally
     CloseFile(_arquivo);
@@ -138,7 +137,13 @@ begin
   Self.FQuery.ParamByName('PVALORCOMPRA').Value := rInfoLinha.ValorCompra;
   Self.FQuery.ParamByName('PNFE').Value := rInfoLinha.ChaveNFE;
   Self.FQuery.ParamByName('POBSERVACOES').Value := rInfoLinha.Observacoes;
-  Self.FQuery.ExecSQL;
+
+  TMonitor.Enter(Self.FGerenciador);
+  try
+    Self.FQuery.ExecSQL;
+  finally
+    TMonitor.Exit(Self.FGerenciador);
+  end;
 end;
 
 end.

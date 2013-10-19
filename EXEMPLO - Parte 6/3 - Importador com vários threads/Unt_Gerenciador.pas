@@ -3,7 +3,7 @@ unit Unt_Gerenciador;
 interface
 
 uses
-  System.Classes, Unt_Importacao, PgAccess;
+  System.Classes, PgAccess;
 
 type
 
@@ -24,12 +24,14 @@ type
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
     property TempoSegundos: NativeUInt read GetTempoSegundos;
+    property NomeArquivo: string read FNomeArquivo;
+    property ProgressBarHandle: THandle read FProgressBarHandle;
   end;
 
 implementation
 
 uses
-  System.SysUtils, DateUtils, Winapi.Windows;
+  System.SysUtils, DateUtils, Winapi.Windows, Unt_Importacao;
 
 { TGerenciador }
 
@@ -132,7 +134,7 @@ begin
 
       CloseFile(_arquivoBuffer);
 
-      aThreads[iItemNucleo - 1] := TImportador.Create(sNomeArquivoBuffer, Self.FProgressBarHandle);
+      aThreads[iItemNucleo - 1] := TImportador.Create(Self);
       aThreads[iItemNucleo - 1].FreeOnTerminate := True;
     end;
     CloseFile(_arquivoOriginal);
@@ -140,8 +142,9 @@ begin
     for iItemNucleo := 1 to iQuantidadeNucleo do
     begin
       aThreads[iItemNucleo - 1].Start;
-      aImportadores[iItemNucleo] := aThreads[iItemNucleo - 1].Handle
+      aImportadores[iItemNucleo] := aThreads[iItemNucleo - 1].Handle;
     end;
+
     iRetornoEspera := WaitForMultipleObjects(iQuantidadeNucleo, @aImportadores, True, INFINITE);
 
   finally
