@@ -1,0 +1,48 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{D6522041-5EFD-498F-9CC8-11E915820664}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="01 - Gerador do arquivo\GeradorCSV.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="02 - Thread Simples\ThreadSimples.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="GeradorCSV">
+			<MSBuild Projects="01 - Gerador do arquivo\GeradorCSV.dproj"/>
+		</Target>
+		<Target Name="GeradorCSV:Clean">
+			<MSBuild Projects="01 - Gerador do arquivo\GeradorCSV.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="GeradorCSV:Make">
+			<MSBuild Projects="01 - Gerador do arquivo\GeradorCSV.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="ThreadSimples">
+			<MSBuild Projects="02 - Thread Simples\ThreadSimples.dproj"/>
+		</Target>
+		<Target Name="ThreadSimples:Clean">
+			<MSBuild Projects="02 - Thread Simples\ThreadSimples.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ThreadSimples:Make">
+			<MSBuild Projects="02 - Thread Simples\ThreadSimples.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="GeradorCSV;ThreadSimples"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="GeradorCSV:Clean;ThreadSimples:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="GeradorCSV:Make;ThreadSimples:Make"/>
+		</Target>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
+	</Project>
