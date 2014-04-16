@@ -1,8 +1,8 @@
 object fImportacao: TfImportacao
   Left = 0
   Top = 0
-  Caption = 'Exemplo utilizando uma thread simples'
-  ClientHeight = 96
+  Caption = 'Exemplo utilizando v'#225'rios threads'
+  ClientHeight = 137
   ClientWidth = 360
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object fImportacao: TfImportacao
   TextHeight = 13
   object lTempo: TLabel
     Left = 8
-    Top = 55
+    Top = 106
     Width = 344
     Height = 23
     Alignment = taCenter
@@ -70,6 +70,15 @@ object fImportacao: TfImportacao
       'tpHigher'
       'tpHighest'
       'tpTimeCritical')
+  end
+  object Button2: TButton
+    Left = 8
+    Top = 56
+    Width = 75
+    Height = 25
+    Caption = 'V'#225'rios!'
+    TabOrder = 2
+    OnClick = Button2Click
   end
   object OpenTextFileDialog1: TOpenTextFileDialog
     Left = 256

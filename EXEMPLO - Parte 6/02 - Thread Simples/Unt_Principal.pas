@@ -35,8 +35,6 @@ type
     lTempo: TLabel;
     ComboBox1: TComboBox;
     Label1: TLabel;
-    CheckListBox1: TCheckListBox;
-    Label2: TLabel;
     procedure Button1Click(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
@@ -78,8 +76,6 @@ var
   rTempo       : TStopwatch;
 begin
   inherited;
-  SetThreadAffinityMask(Self.Handle ,8);
-
   rTempo := TStopwatch.StartNew;
   sArquivoSQL := ChangeFileExt(Self.FNomeArquivo, '.sql');
 
@@ -150,19 +146,7 @@ begin
 end;
 
 procedure TfImportacao.FormCreate(Sender: TObject);
-const
-  C_PROCESSADOR = 'Quantidade de processadores: [%d]';
-var
-  i: Integer;
 begin
-  Self.Label2.Caption := Format(C_PROCESSADOR, [TThread.ProcessorCount]);
-
-  for i := 0 to Pred(TThread.ProcessorCount) do
-  begin
-    CheckListBox1.AddItem(Format('Processador #%d', [i]), nil);
-  end;
-  CheckListBox1.CheckAll(cbChecked);
-
   ReportMemoryLeaksOnShutdown := True;
 end;
 
