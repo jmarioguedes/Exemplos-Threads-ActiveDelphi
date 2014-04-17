@@ -1,8 +1,8 @@
 object fImportacao: TfImportacao
   Left = 0
   Top = 0
-  Caption = 'Exemplo utilizando v'#225'rios threads'
-  ClientHeight = 137
+  Caption = 'Prova de Conceitos'
+  ClientHeight = 187
   ClientWidth = 360
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -33,7 +33,7 @@ object fImportacao: TfImportacao
   end
   object Label1: TLabel
     Left = 173
-    Top = 15
+    Top = 20
     Width = 61
     Height = 13
     Caption = 'Prioridade:'
@@ -44,18 +44,33 @@ object fImportacao: TfImportacao
     Font.Style = [fsBold]
     ParentFont = False
   end
+  object lQuantidade: TLabel
+    Left = 8
+    Top = 146
+    Width = 344
+    Height = 23
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'lQuantidade'
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clMaroon
+    Font.Height = -19
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentFont = False
+  end
   object Button1: TButton
     Left = 8
-    Top = 8
-    Width = 75
+    Top = 15
+    Width = 121
     Height = 25
-    Caption = 'Processar!'
+    Caption = 'Um Thread!'
     TabOrder = 0
     OnClick = Button1Click
   end
   object ComboBox1: TComboBox
     Left = 240
-    Top = 12
+    Top = 17
     Width = 112
     Height = 21
     Style = csDropDownList
@@ -73,10 +88,10 @@ object fImportacao: TfImportacao
   end
   object Button2: TButton
     Left = 8
-    Top = 56
-    Width = 75
+    Top = 46
+    Width = 121
     Height = 25
-    Caption = 'V'#225'rios!'
+    Caption = 'V'#225'rios Threads!'
     TabOrder = 2
     OnClick = Button2Click
   end
