@@ -35,7 +35,7 @@ implementation
 
 procedure TForm1.Button1Click(Sender: TObject);
 const
-  C_TOTAL_LINHA = 1000 * 1000 * 15;
+  C_TOTAL_LINHA = 10000;
 var
   _arquivo   : TextFile;
   slLinha    : TStringList;
@@ -56,6 +56,7 @@ begin
     for i := 1 to C_TOTAL_LINHA do
     begin
       slLinha.Clear;
+      slLinha.Add(IntToStr(i));
       slLinha.Add(StringOfChar('n', Random(100)));
       slLinha.Add(StringOfChar('9', 14));
       slLinha.Add(StringOfChar('c', 14));

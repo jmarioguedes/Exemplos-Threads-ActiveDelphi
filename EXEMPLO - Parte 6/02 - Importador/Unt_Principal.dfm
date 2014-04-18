@@ -1,8 +1,8 @@
 object fImportacao: TfImportacao
   Left = 0
   Top = 0
-  Caption = 'Exemplo utilizando uma thread simples'
-  ClientHeight = 96
+  Caption = 'Prova de Conceitos'
+  ClientHeight = 187
   ClientWidth = 360
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@ object fImportacao: TfImportacao
   TextHeight = 13
   object lTempo: TLabel
     Left = 8
-    Top = 55
+    Top = 106
     Width = 344
     Height = 23
     Alignment = taCenter
@@ -31,31 +31,33 @@ object fImportacao: TfImportacao
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object Label1: TLabel
-    Left = 173
-    Top = 15
-    Width = 61
-    Height = 13
-    Caption = 'Prioridade:'
+  object lQuantidade: TLabel
+    Left = 8
+    Top = 146
+    Width = 344
+    Height = 23
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'lQuantidade'
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
+    Font.Color = clMaroon
+    Font.Height = -19
     Font.Name = 'Tahoma'
     Font.Style = [fsBold]
     ParentFont = False
   end
   object Button1: TButton
     Left = 8
-    Top = 8
-    Width = 75
+    Top = 15
+    Width = 121
     Height = 25
-    Caption = 'Processar!'
+    Caption = 'Um Thread!'
     TabOrder = 0
     OnClick = Button1Click
   end
   object ComboBox1: TComboBox
-    Left = 240
-    Top = 12
+    Left = 135
+    Top = 17
     Width = 112
     Height = 21
     Style = csDropDownList
@@ -70,6 +72,15 @@ object fImportacao: TfImportacao
       'tpHigher'
       'tpHighest'
       'tpTimeCritical')
+  end
+  object Button2: TButton
+    Left = 8
+    Top = 58
+    Width = 121
+    Height = 25
+    Caption = 'V'#225'rios Threads!'
+    TabOrder = 2
+    OnClick = Button2Click
   end
   object OpenTextFileDialog1: TOpenTextFileDialog
     Left = 256

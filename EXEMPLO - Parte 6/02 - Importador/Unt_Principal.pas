@@ -15,9 +15,18 @@ uses
   Vcl.ComCtrls,
   Vcl.StdCtrls,
   Vcl.ExtDlgs,
-  Vcl.CheckLst;
+  Vcl.CheckLst,
+  Data.DB,
+  Data.SqlExpr,
+  Data.DBXMSSQL,
+  Data.DBXFirebird;
 
 type
+
+  TThreadEsvaziarTabela = class(TThread)
+  public
+    procedure Execute; override;
+  end;
 
   /// <summary>
   /// Simula a efetiva importação dos dados
@@ -28,11 +37,17 @@ type
     FNomeArquivo     : string;
     FTempoSegundos   : NativeUInt;
     FQuantidadeLinhas: NativeUInt;
+    FDatabase        : TSQLConnection;
+    FQuery           : TSQLQuery;
   public
     /// <summary>
     /// Recebe o nome do arquivo alvo
     /// </summary>
     constructor Create(const ANomeArquivo: string); reintroduce;
+    /// <summary>
+    /// Libera as instâncias associadas
+    /// </summary>
+    procedure BeforeDestruction; override;
     /// <summary>
     /// Define corretamente a máscara de afinidade
     /// </summary>
@@ -59,7 +74,8 @@ type
     FNomeArquivo     : string;
     FTempoSegundos   : NativeUInt;
     FQuantidadeLinhas: NativeUInt;
-    FThreads         : array of TThreadImportacao;
+    FEsvaziador      : TThreadEsvaziarTabela;
+    FImportadores    : array of TThreadImportacao;
     /// <summary>
     /// Divide o arquivo em partes e os distribui aos threads
     /// </summary>
@@ -90,12 +106,11 @@ type
 
   TfImportacao = class(TForm)
     Button1: TButton;
+    Button2: TButton;
     OpenTextFileDialog1: TOpenTextFileDialog;
     lTempo: TLabel;
-    ComboBox1: TComboBox;
-    Label1: TLabel;
-    Button2: TButton;
     lQuantidade: TLabel;
+    ComboBox1: TComboBox;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -104,6 +119,7 @@ type
     FThreadUnica  : TThreadImportacao;
     FThreadGerente: TThreadGerente;
     procedure QuandoTerminarThread(Sender: TObject);
+    function EscolherArquivo: string;
   public
     { Public declarations }
   end;
@@ -121,10 +137,35 @@ uses
 {$R *.dfm}
 { TThreadImportacao }
 
+procedure TThreadImportacao.BeforeDestruction;
+begin
+  inherited;
+  Self.FQuery.Free;
+  Self.FDatabase.Close;
+  Self.FDatabase.Free;
+end;
+
 constructor TThreadImportacao.Create(const ANomeArquivo: string);
 begin
   inherited Create(True);
+  // Associa o nome do arquivo de entrada
   Self.FNomeArquivo := ANomeArquivo;
+
+  // Cria a conexão com o banco de dados
+  Self.FDatabase := TSQLConnection.Create(nil);
+  with Self.FDatabase do
+  begin
+    LoginPrompt := False;
+    DriverName := 'Firebird';
+    Params.Values['Database'] := '192.168.0.132:MARIO';
+    Params.Values['User_Name'] := 'sysdba';
+    Params.Values['Password'] := 'masterkey';
+    Open;
+  end;
+
+  // Cria e prepara a instrução SQL
+  Self.FQuery := TSQLQuery.Create(nil);
+  Self.FQuery.SQLConnection := Self.FDatabase;
 end;
 
 procedure TThreadImportacao.DefinirAfinidade(ANumCPU: Byte);
@@ -147,7 +188,7 @@ end;
 
 procedure TThreadImportacao.Execute;
 const
-  C_INSTRUCAO_SQL = 'INSERT INTO tbcliente (NOME_CLIENTE, CNPJ, ENDERECO, TELEFONE_1, TELEFONE_2, EMAIL) VALUES ("%s", "%s", "%s", "%s", "%s", "%s");';
+  C_INSTRUCAO_SQL = 'INSERT INTO NEW_TABLE (ID, NOME_CLIENTE, CNPJ, ENDERECO, TELEFONE_1, TELEFONE_2, EMAIL) VALUES (%s, ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');';
 var
   _csv         : TextFile;
   sLinha       : string;
@@ -191,16 +232,11 @@ begin
       slAuxiliar.CommaText := sLinha;
 
       // Monta a instrução SQL
-      sInstrucaoSQL := Format(C_INSTRUCAO_SQL, [slAuxiliar[0], slAuxiliar[1], slAuxiliar[2], slAuxiliar[3], slAuxiliar[4], slAuxiliar[5]]);
+      sInstrucaoSQL := Format(C_INSTRUCAO_SQL, [slAuxiliar[0], slAuxiliar[1], slAuxiliar[2], slAuxiliar[3], slAuxiliar[4], slAuxiliar[5], slAuxiliar[6]]);
 
-      //
-      // PONTO EM QUE O BANCO DE DADOS SERIA ACIONADO!
-      // ESTAMOS FAZENDO UM PROCESSAMENTO FAKE
-      //
-      for i := 0 to Length(sLinha) do
-      begin
-        SendMessage(0, 0, 0, 0)
-      end;
+      // Executa a instrução SQL
+      Self.FQuery.SQL.Text := sInstrucaoSQL;
+      Self.FQuery.ExecSQL;
     end;
   finally
     rTempo.Stop;
@@ -214,64 +250,70 @@ procedure TfImportacao.Button1Click(Sender: TObject);
 var
   sNomeArquivo: string;
   iPrioridade : Integer;
-  bRet        : Boolean;
+  oEsvaziador : TThreadEsvaziarTabela;
 begin
-  // Abre a caixa de diálogo para selecionar o arquivo
-  Self.OpenTextFileDialog1.Title := 'Selecionar arquivo ...';
-  Self.OpenTextFileDialog1.Filter := 'Arquivo CSV|*.csv';
-  bRet := Self.OpenTextFileDialog1.Execute(Self.Handle);
+  // Seleciona o arquivo
+  sNomeArquivo := Self.EscolherArquivo;
 
-  // Se o usuário confirmou ...
-  if (bRet) then
-  begin
-    // Desabilita os botões
-    Self.Button1.Enabled := False;
-    Self.Button2.Enabled := False;
-    Self.ComboBox1.Enabled := False;
+  // Desabilita os botões
+  Self.Button1.Enabled := False;
+  Self.Button2.Enabled := False;
+  Self.ComboBox1.Enabled := False;
 
-    // Determina o nome do arquivo
-    sNomeArquivo := Self.OpenTextFileDialog1.FileName;
+  // Esvazia a tabela
+  oEsvaziador := TThreadEsvaziarTabela.Create(True);
+  oEsvaziador.FreeOnTerminate := True;
+  oEsvaziador.Start;
 
-    // Determina o Ord() da prioridade do thread
-    iPrioridade := GetEnumValue(TypeInfo(TThreadPriority), Self.ComboBox1.Text);
+  WaitForSingleObject(oEsvaziador.Handle, INFINITE);
 
-    // Configura e inicializa o thread
-    Self.FThreadUnica := TThreadImportacao.Create(sNomeArquivo);
-    Self.FThreadUnica.Priority := TThreadPriority(iPrioridade);
-    Self.FThreadUnica.FreeOnTerminate := True;
-    Self.FThreadUnica.OnTerminate := Self.QuandoTerminarThread;
-    Self.FThreadUnica.Start;
-  end;
+  // Determina o Ord() da prioridade do thread
+  iPrioridade := GetEnumValue(TypeInfo(TThreadPriority), Self.ComboBox1.Text);
+
+  // Configura e inicializa o thread, definindo a prioridade
+  Self.FThreadUnica := TThreadImportacao.Create(sNomeArquivo);
+  Self.FThreadUnica.Priority := TThreadPriority(iPrioridade);
+  Self.FThreadUnica.FreeOnTerminate := True;
+  Self.FThreadUnica.OnTerminate := Self.QuandoTerminarThread;
+  Self.FThreadUnica.Start;
 end;
 
 procedure TfImportacao.Button2Click(Sender: TObject);
 var
   sNomeArquivo: string;
-  iPrioridade : Integer;
-  bRet        : Boolean;
+begin
+  // Seleciona o arquivo
+  sNomeArquivo := Self.EscolherArquivo;
+
+  // Desabilita os botões
+  Self.Button1.Enabled := False;
+  Self.Button2.Enabled := False;
+  Self.ComboBox1.Enabled := False;
+
+  // Configura e inicializa o thread
+  Self.FThreadGerente := TThreadGerente.Create(sNomeArquivo);
+  Self.FThreadGerente.FreeOnTerminate := True;
+  Self.FThreadGerente.OnTerminate := Self.QuandoTerminarThread;
+  Self.FThreadGerente.Start;
+end;
+
+function TfImportacao.EscolherArquivo: string;
+var
+  bRet: Boolean;
 begin
   // Abre a caixa de diálogo para selecionar o arquivo
   Self.OpenTextFileDialog1.Title := 'Selecionar arquivo ...';
   Self.OpenTextFileDialog1.Filter := 'Arquivo CSV|*.csv';
   bRet := Self.OpenTextFileDialog1.Execute(Self.Handle);
 
-  // Se o usuário confirmou ...
-  if (bRet) then
+  // Se o usuário cancelar a operação, gera erro
+  if not bRet then
   begin
-    // Desabilita os botões
-    Self.Button1.Enabled := False;
-    Self.Button2.Enabled := False;
-    Self.ComboBox1.Enabled := False;
-
-    // Determina o nome do arquivo
-    sNomeArquivo := Self.OpenTextFileDialog1.FileName;
-
-    // Configura e inicializa o thread
-    Self.FThreadGerente := TThreadGerente.Create(sNomeArquivo);
-    Self.FThreadGerente.FreeOnTerminate := True;
-    Self.FThreadGerente.OnTerminate := Self.QuandoTerminarThread;
-    Self.FThreadGerente.Start;
+    raise Exception.Create('Operação cancelada pelo usuário');
   end;
+
+  // Retorno do nome do arquivo escolhido
+  Result := Self.OpenTextFileDialog1.FileName;
 end;
 
 procedure TfImportacao.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -381,7 +423,7 @@ begin
 
     // Quantidade de processadores
     iQuantProcessador := TThread.ProcessorCount;
-    SetLength(Self.FThreads, iQuantProcessador);
+    SetLength(Self.FImportadores, iQuantProcessador);
 
     // Tamanho do arquivo em bytes
     iTamEntrada := FileSize(_arq_entrada);
@@ -452,13 +494,13 @@ begin
         // Determina a posição no array
         iPosArray := iNumProcessador - 1;
         // Cria um thread de importação passando o arquivo de saída
-        Self.FThreads[iPosArray] := TThreadImportacao.Create(sNomeArquivoSaida);
+        Self.FImportadores[iPosArray] := TThreadImportacao.Create(sNomeArquivoSaida);
         // Define a afinade com o núcleo correspondente
-        Self.FThreads[iPosArray].DefinirAfinidade(iNumProcessador);
+        Self.FImportadores[iPosArray].DefinirAfinidade(iNumProcessador);
         // Aumenta a prioridade do thread
-        Self.FThreads[iPosArray].Priority := tpHigher;
+        Self.FImportadores[iPosArray].Priority := tpHigher;
         // Inicia o thread
-        Self.FThreads[iPosArray].Start;
+        Self.FImportadores[iPosArray].Start;
       end;
     end;
   finally
@@ -469,10 +511,10 @@ end;
 
 procedure TThreadGerente.Execute;
 var
-  aHandles: array [1 .. MAXBYTE] of THandle;
-  _crono  : TStopwatch;
-  i       : Integer;
-  cRet    : Cardinal;
+  aHandles  : array [1 .. MAXBYTE] of THandle;
+  _crono    : TStopwatch;
+  iNumThread: Integer;
+  cRet      : Cardinal;
 begin
   inherited;
   _crono := TStopwatch.StartNew;
@@ -483,26 +525,32 @@ begin
     // Aumenta a prioridade do thread
     Self.Priority := tpHighest;
 
+    // Esvazia a tabela
+    Self.FEsvaziador := TThreadEsvaziarTabela.Create(True);
+    Self.FEsvaziador.Start;
+
+    WaitForSingleObject(Self.FEsvaziador.Handle, INFINITE);
+
     // Divide o arquivo gigante em partes e inicia o thread
     // de importação correspondente
     Self.DividirArquivo;
 
-    // Volta a prioridade normal
-    Self.Priority := tpNormal;
+    // Baixa a prioridade
+    Self.Priority := tpLowest;
 
     // Anota os manipuladores dos threads
-    for i := 0 to High(Self.FThreads) do
+    for iNumThread := 0 to High(Self.FImportadores) do
     begin
-      aHandles[Succ(i)] := Self.FThreads[i].Handle;
+      aHandles[Succ(iNumThread)] := Self.FImportadores[iNumThread].Handle;
     end;
 
     // Aguarda o términos dos threads de importação
-    cRet := WaitForMultipleObjects(Length(Self.FThreads), @aHandles, True, INFINITE);
+    cRet := WaitForMultipleObjects(Length(Self.FImportadores), @aHandles, True, INFINITE);
 
     // Determina a quantidade de linhas processadas
-    for i := 0 to High(Self.FThreads) do
+    for iNumThread := 0 to High(Self.FImportadores) do
     begin
-      Inc(Self.FQuantidadeLinhas, Self.FThreads[i].QuantidadeLinhas);
+      Inc(Self.FQuantidadeLinhas, Self.FImportadores[iNumThread].QuantidadeLinhas);
     end;
 
     // Força a liberação dos threads de importação
@@ -519,22 +567,64 @@ var
   i: Integer;
 begin
   inherited;
-  // Varre o array de threads ...
-  for i := 0 to High(Self.FThreads) do
+
+  // Libera o array de esvaziamento da tabela
+  if Assigned(Self.FEsvaziador) then
+  begin
+    // Se NÃO estiver finalizada, indica o término
+    if not(Self.FEsvaziador.Finished) then
+    begin
+      Self.FEsvaziador.Terminate;
+      Self.FEsvaziador.WaitFor;
+    end;
+
+    // Libera a instância
+    Self.FEsvaziador.Free;
+  end;
+
+  // Libera os arrays de importação
+  for i := 0 to High(Self.FImportadores) do
   begin
     // Se estiver sinalizada ...
-    if Assigned(Self.FThreads[i]) then
+    if Assigned(Self.FImportadores[i]) then
     begin
       // Se NÃO estiver finalizada, indica o término
-      if not(Self.FThreads[i].Finished) then
+      if not(Self.FImportadores[i].Finished) then
       begin
-        Self.FThreads[i].Terminate;
-        Self.FThreads[i].WaitFor;
+        Self.FImportadores[i].Terminate;
+        Self.FImportadores[i].WaitFor;
       end;
 
       // Libera a instância
-      Self.FThreads[i].Free;
+      Self.FImportadores[i].Free;
     end;
+  end;
+end;
+
+{ TThreadEsvaziarTabela }
+
+procedure TThreadEsvaziarTabela.Execute;
+var
+  oDatabase: TSQLConnection;
+begin
+  inherited;
+
+  oDatabase := TSQLConnection.Create(nil);
+  try
+    with oDatabase do
+    begin
+      LoginPrompt := False;
+      DriverName := 'Firebird';
+      Params.Values['Database'] := '192.168.0.132:MARIO';
+      Params.Values['User_Name'] := 'sysdba';
+      Params.Values['Password'] := 'masterkey';
+      Open;
+    end;
+
+    oDatabase.ExecuteDirect('DELETE FROM NEW_TABLE');
+  finally
+    oDatabase.Close;
+    oDatabase.Free;
   end;
 end;
 

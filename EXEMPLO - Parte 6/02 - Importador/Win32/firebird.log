@@ -1,0 +1,25 @@
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: read errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	REMOTE INTERFACE/gds__detach: Unsuccesful detach from database. 
+	Uncommitted work may have been lost
+
+G40092 (Client)	Thu Apr 17 13:55:30 2014
+	INET/inet_error: send errno = 10054
+
