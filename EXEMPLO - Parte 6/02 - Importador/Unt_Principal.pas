@@ -28,13 +28,13 @@ type
   TThreadEsvaziarTabela = class(TThread)
   public
     /// <summary>
-    /// Rotina que será executado pelo thread
+    /// Rotina que serï¿½ executado pelo thread
     /// </summary>
     procedure Execute; override;
   end;
 
   /// <summary>
-  /// Simula a efetiva importação dos dados
+  /// Efetiva importaï¿½ï¿½o dos dados
   /// </summary>
   TThreadImportacao = class(TThread)
   private
@@ -47,11 +47,11 @@ type
     /// </summary>
     constructor Create(const ANomeArquivo: string); reintroduce;
     /// <summary>
-    /// Define corretamente a máscara de afinidade
+    /// Define corretamente a mï¿½scara de afinidade
     /// </summary>
     procedure Execute; override;
     /// <summary>
-    /// Tempo total de execução
+    /// Tempo total de execuï¿½ï¿½o
     /// </summary>
     property TempoSegundos: NativeUInt read FTempoSegundos;
     /// <summary>
@@ -61,7 +61,7 @@ type
   end;
 
   /// <summary>
-  /// Thread de gerenciamento das múltiplas threads
+  /// Thread de gerenciamento das mï¿½ltiplas threads
   /// </summary>
   TThreadGerente = class(TThread)
   private
@@ -76,7 +76,7 @@ type
     procedure DividirArquivo;
   protected
     /// <summary>
-    /// Utilizado para terminar os threads de importação
+    /// Utilizado para terminar os threads de importaï¿½ï¿½o
     /// </summary>
     procedure TerminatedSet; override;
   public
@@ -89,7 +89,7 @@ type
     /// </summary>
     procedure Execute; override;
     /// <summary>
-    /// Tempo total de execução
+    /// Tempo total de execuï¿½ï¿½o
     /// </summary>
     property TempoSegundos: NativeUInt read FTempoSegundos;
     /// <summary>
@@ -150,7 +150,7 @@ begin
   inherited;
   rTempo := TStopwatch.StartNew;
 
-  // Efetua a conexão com o banco de dados
+  // Efetua a conexï¿½o com o banco de dados
   oDatabase := TSQLConnection.Create(nil);
   with oDatabase do
   begin
@@ -171,7 +171,7 @@ begin
     // Abre o arquivo para leitura
     Reset(_csv);
 
-    // Enquanto não for o fim do arquivo ...
+    // Enquanto nï¿½o for o fim do arquivo ...
     while not Eof(_csv) do
     begin
       // Incrementa a quantidade de linhas processadas
@@ -184,16 +184,16 @@ begin
         Break;
       end;
 
-      // Lê a próxima linha
+      // Lï¿½ a prï¿½xima linha
       Readln(_csv, sLinha);
 
       // Quebra os campos CSV
       slAuxiliar.CommaText := sLinha;
 
-      // Monta a instrução SQL
+      // Monta a instruï¿½ï¿½o SQL
       sInstrucaoSQL := Format(C_INSTRUCAO_SQL, [slAuxiliar[0], slAuxiliar[1], slAuxiliar[2], slAuxiliar[3], slAuxiliar[4], slAuxiliar[5], slAuxiliar[6]]);
 
-      // Executa a instrução SQL
+      // Executa a instruï¿½ï¿½o SQL
       oDatabase.ExecuteDirect(sInstrucaoSQL);
     end;
   finally
@@ -215,7 +215,7 @@ begin
   // Seleciona o arquivo
   sNomeArquivo := Self.EscolherArquivo;
 
-  // Desabilita os botões
+  // Desabilita os botï¿½es
   Self.Button1.Enabled := False;
   Self.Button2.Enabled := False;
 
@@ -240,7 +240,7 @@ begin
   // Seleciona o arquivo
   sNomeArquivo := Self.EscolherArquivo;
 
-  // Desabilita os botões
+  // Desabilita os botï¿½es
   Self.Button1.Enabled := False;
   Self.Button2.Enabled := False;
 
@@ -255,15 +255,15 @@ function TfImportacao.EscolherArquivo: string;
 var
   bRet: Boolean;
 begin
-  // Abre a caixa de diálogo para selecionar o arquivo
+  // Abre a caixa de diï¿½logo para selecionar o arquivo
   Self.OpenTextFileDialog1.Title := 'Selecionar arquivo ...';
   Self.OpenTextFileDialog1.Filter := 'Arquivo CSV|*.csv';
   bRet := Self.OpenTextFileDialog1.Execute(Self.Handle);
 
-  // Se o usuário cancelar a operação, gera erro
+  // Se o usuï¿½rio cancelar a operaï¿½ï¿½o, gera erro
   if not bRet then
   begin
-    raise Exception.Create('Operação cancelada pelo usuário');
+    raise Exception.Create('Operaï¿½ï¿½o cancelada pelo usuï¿½rio');
   end;
 
   // Retorno do nome do arquivo escolhido
@@ -277,7 +277,7 @@ begin
   // Inicializa a variavel
   oThread := nil;
 
-  // Se a thread única estiver sinalizada, assume
+  // Se a thread ï¿½nica estiver sinalizada, assume
   if Assigned(Self.FThreadUnica) then
   begin
     oThread := Self.FThreadUnica;
@@ -298,13 +298,13 @@ begin
     // "Desliga" o FreeOnTerminate
     oThread.FreeOnTerminate := False;
 
-    // Indica o término
+    // Indica o tï¿½rmino
     oThread.Terminate;
 
-    // Aguarda o término
+    // Aguarda o tï¿½rmino
     oThread.WaitFor;
 
-    // Libera as instâncias
+    // Libera as instï¿½ncias
     oThread.Free;
   end;
 end;
@@ -321,7 +321,7 @@ var
   sTexto : string;
   iLinhas: NativeUInt;
 begin
-  // Se for um thread de importação ...
+  // Se for um thread de importaï¿½ï¿½o ...
   if Sender is TThreadImportacao then
   begin
     sTexto := Format(C_TEMPO, ['Um thread!', Self.FThreadUnica.TempoSegundos]);
@@ -332,7 +332,7 @@ begin
   // Se for a thread gerenciadora ...
   if Sender is TThreadGerente then
   begin
-    sTexto := Format(C_TEMPO, ['Vários threads!', Self.FThreadGerente.TempoSegundos]);
+    sTexto := Format(C_TEMPO, ['Vï¿½rios threads!', Self.FThreadGerente.TempoSegundos]);
     iLinhas := Self.FThreadGerente.QuantidadeLinhas;
     Self.FThreadGerente := nil;
   end;
@@ -371,7 +371,7 @@ begin
   // Associa o arquivo de entrada a um manipulador
   AssignFile(_arq_entrada, Self.FNomeArquivo);
   try
-    // Vai para o início do arquivo
+    // Vai para o inï¿½cio do arquivo
     Reset(_arq_entrada, 1);
 
     // Quantidade de processadores
@@ -384,17 +384,17 @@ begin
     // Tamanho aproximando para cada arquivo
     iTamPorArquivo := iTamEntrada div iQuantProcessador;
 
-    // Varre-se de tras pára frente para definir a afinidade do
-    // último núcleo ao primeiro
+    // Varre-se de tras pï¿½ra frente para definir a afinidade do
+    // ï¿½ltimo nï¿½cleo ao primeiro
     for iNumProcessador := 1 to iQuantProcessador do
     begin
       // Zera a quantidade lida
       iTotalLido := 0;
 
-      // Nome do arquivo de saída
+      // Nome do arquivo de saï¿½da
       sNomeArquivoSaida := Format('.\arquivo_%d.csv', [iNumProcessador]);
 
-      // Associa o arquivo de saída a um manipulador
+      // Associa o arquivo de saï¿½da a um manipulador
       AssignFile(_arq_saida, sNomeArquivoSaida);
 
       // Coloca o arquivo em modo de escrita
@@ -402,10 +402,10 @@ begin
       try
         while True do
         begin
-          // Lê um bloco do arquivo de entrada
+          // Lï¿½ um bloco do arquivo de entrada
           BlockRead(_arq_entrada, aBuffer, MAXWORD, iTamBuffer);
 
-          // Escreve este bloco no arquivo de saída
+          // Escreve este bloco no arquivo de saï¿½da
           BlockWrite(_arq_saida, aBuffer, iTamBuffer);
 
           // Finaliza se chegou ao fim do arquivo de entrada
@@ -414,22 +414,22 @@ begin
             Exit;
           end;
 
-          // Se estiver no último arquivo não precisa
-          // mais verificações
+          // Se estiver no ï¿½ltimo arquivo nï¿½o precisa
+          // mais verificaï¿½ï¿½es
           if (iNumProcessador = iQuantProcessador) then
           begin
             Continue;
           end;
 
-          // Se já atingiu o tamanho proposto ...
+          // Se jï¿½ atingiu o tamanho proposto ...
           Inc(iTotalLido, iTamBuffer);
           if (iTotalLido >= iTamPorArquivo) then
           begin
-            // Se o último caracter não for #10 continua lendo
-            // byte a byte para finalizar um arquivo íntegro
+            // Se o ï¿½ltimo caracter nï¿½o for #10 continua lendo
+            // byte a byte para finalizar um arquivo ï¿½ntegro
             if (aBuffer[iTamBuffer] <> C_ASCII_10) then
             begin
-              // Lê o arquivo continuamente até encontrar um #10
+              // Lï¿½ o arquivo continuamente atï¿½ encontrar um #10
               repeat
                 BlockRead(_arq_entrada, aBuffer, 1, iTamBuffer);
                 BlockWrite(_arq_saida, aBuffer, iTamBuffer);
@@ -441,12 +441,12 @@ begin
           end;
         end;
       finally
-        // Encerra o manipulador do arquivo de saída
+        // Encerra o manipulador do arquivo de saï¿½da
         CloseFile(_arq_saida);
 
-        // Determina a posição no array
+        // Determina a posiï¿½ï¿½o no array
         iPosArray := iNumProcessador - 1;
-        // Cria um thread de importação passando o arquivo de saída
+        // Cria um thread de importaï¿½ï¿½o passando o arquivo de saï¿½da
         Self.FImportadores[iPosArray] := TThreadImportacao.Create(sNomeArquivoSaida);
         // Inicia o thread
         Self.FImportadores[iPosArray].Start;
@@ -474,7 +474,7 @@ begin
     WaitForSingleObject(Self.FEsvaziador.Handle, INFINITE);
 
     // Divide o arquivo gigante em partes e inicia o thread
-    // de importação correspondente
+    // de importaï¿½ï¿½o correspondente
     Self.DividirArquivo;
 
     // Anota os manipuladores dos threads
@@ -483,7 +483,7 @@ begin
       aHandles[Succ(iNumThread)] := Self.FImportadores[iNumThread].Handle;
     end;
 
-    // Aguarda o términos dos threads de importação
+    // Aguarda o tï¿½rminos dos threads de importaï¿½ï¿½o
     WaitForMultipleObjects(Length(Self.FImportadores), @aHandles, True, INFINITE);
 
     // Determina a quantidade de linhas processadas
@@ -492,7 +492,7 @@ begin
       Inc(Self.FQuantidadeLinhas, Self.FImportadores[iNumThread].QuantidadeLinhas);
     end;
 
-    // Força a liberação dos threads de importação
+    // Forï¿½a a liberaï¿½ï¿½o dos threads de importaï¿½ï¿½o
     Self.Terminate;
   finally
     _crono.Stop;
@@ -509,31 +509,31 @@ begin
   // Libera o array de esvaziamento da tabela
   if Assigned(Self.FEsvaziador) then
   begin
-    // Se NÃO estiver finalizada, indica o término
+    // Se Nï¿½O estiver finalizada, indica o tï¿½rmino
     if not(Self.FEsvaziador.Finished) then
     begin
       Self.FEsvaziador.Terminate;
       Self.FEsvaziador.WaitFor;
     end;
 
-    // Libera a instância
+    // Libera a instï¿½ncia
     Self.FEsvaziador.Free;
   end;
 
-  // Libera os arrays de importação
+  // Libera os arrays de importaï¿½ï¿½o
   for i := 0 to High(Self.FImportadores) do
   begin
     // Se estiver sinalizada ...
     if Assigned(Self.FImportadores[i]) then
     begin
-      // Se NÃO estiver finalizada, indica o término
+      // Se Nï¿½O estiver finalizada, indica o tï¿½rmino
       if not(Self.FImportadores[i].Finished) then
       begin
         Self.FImportadores[i].Terminate;
         Self.FImportadores[i].WaitFor;
       end;
 
-      // Libera a instância
+      // Libera a instï¿½ncia
       Self.FImportadores[i].Free;
     end;
   end;
@@ -546,7 +546,7 @@ var
   oDatabase: TSQLConnection;
 begin
   inherited;
-  // Conexão com o banco de dados
+  // Conexï¿½o com o banco de dados
   oDatabase := TSQLConnection.Create(nil);
   try
     with oDatabase do
@@ -559,7 +559,7 @@ begin
       Open;
     end;
 
-    // Instrução SQL de deleção
+    // Instruï¿½ï¿½o SQL de deleï¿½ï¿½o
     oDatabase.ExecuteDirect('DELETE FROM TBCONTATOS');
   finally
     oDatabase.Close;
