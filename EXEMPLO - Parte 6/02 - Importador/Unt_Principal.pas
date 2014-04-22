@@ -18,13 +18,18 @@ uses
   Vcl.CheckLst,
   Data.DB,
   Data.SqlExpr,
-  Data.DBXMSSQL,
   Data.DBXFirebird;
 
 type
 
+  /// <summary>
+  /// Especializada em apagar os dados da tabela
+  /// </summary>
   TThreadEsvaziarTabela = class(TThread)
   public
+    /// <summary>
+    /// Rotina que será executado pelo thread
+    /// </summary>
     procedure Execute; override;
   end;
 
@@ -33,27 +38,16 @@ type
   /// </summary>
   TThreadImportacao = class(TThread)
   private
-    FAfinidade       : Integer;
     FNomeArquivo     : string;
     FTempoSegundos   : NativeUInt;
     FQuantidadeLinhas: NativeUInt;
-    FDatabase        : TSQLConnection;
-    FQuery           : TSQLQuery;
   public
     /// <summary>
     /// Recebe o nome do arquivo alvo
     /// </summary>
     constructor Create(const ANomeArquivo: string); reintroduce;
     /// <summary>
-    /// Libera as instâncias associadas
-    /// </summary>
-    procedure BeforeDestruction; override;
-    /// <summary>
     /// Define corretamente a máscara de afinidade
-    /// </summary>
-    procedure DefinirAfinidade(ANumCPU: Byte);
-    /// <summary>
-    /// Rotina a ser executado pelo thread
     /// </summary>
     procedure Execute; override;
     /// <summary>
@@ -63,7 +57,7 @@ type
     /// <summary>
     /// Quantidade de linhas processadas
     /// </summary>
-    property QuantidadeLinhas: NativeUInt read FQuantidadeLinhas write FQuantidadeLinhas;
+    property QuantidadeLinhas: NativeUInt read FQuantidadeLinhas;
   end;
 
   /// <summary>
@@ -101,7 +95,7 @@ type
     /// <summary>
     /// Quantidade de linhas processadas
     /// </summary>
-    property QuantidadeLinhas: NativeUInt read FQuantidadeLinhas write FQuantidadeLinhas;
+    property QuantidadeLinhas: NativeUInt read FQuantidadeLinhas;
   end;
 
   TfImportacao = class(TForm)
@@ -110,7 +104,6 @@ type
     OpenTextFileDialog1: TOpenTextFileDialog;
     lTempo: TLabel;
     lQuantidade: TLabel;
-    ComboBox1: TComboBox;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -137,23 +130,29 @@ uses
 {$R *.dfm}
 { TThreadImportacao }
 
-procedure TThreadImportacao.BeforeDestruction;
-begin
-  inherited;
-  Self.FQuery.Free;
-  Self.FDatabase.Close;
-  Self.FDatabase.Free;
-end;
-
 constructor TThreadImportacao.Create(const ANomeArquivo: string);
 begin
   inherited Create(True);
-  // Associa o nome do arquivo de entrada
   Self.FNomeArquivo := ANomeArquivo;
+end;
 
-  // Cria a conexão com o banco de dados
-  Self.FDatabase := TSQLConnection.Create(nil);
-  with Self.FDatabase do
+procedure TThreadImportacao.Execute;
+const
+  C_INSTRUCAO_SQL = 'INSERT INTO TBCONTATOS ' + '   (ID, NOME_CLIENTE, CNPJ, ENDERECO, TELEFONE_1, TELEFONE_2, EMAIL)' + 'VALUES ' + '   (%s, ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');';
+var
+  _csv         : TextFile;
+  sLinha       : string;
+  slAuxiliar   : TStringList;
+  sInstrucaoSQL: string;
+  rTempo       : TStopwatch;
+  oDatabase    : TSQLConnection;
+begin
+  inherited;
+  rTempo := TStopwatch.StartNew;
+
+  // Efetua a conexão com o banco de dados
+  oDatabase := TSQLConnection.Create(nil);
+  with oDatabase do
   begin
     LoginPrompt := False;
     DriverName := 'Firebird';
@@ -162,46 +161,6 @@ begin
     Params.Values['Password'] := 'masterkey';
     Open;
   end;
-
-  // Cria e prepara a instrução SQL
-  Self.FQuery := TSQLQuery.Create(nil);
-  Self.FQuery.SQLConnection := Self.FDatabase;
-end;
-
-procedure TThreadImportacao.DefinirAfinidade(ANumCPU: Byte);
-var
-  sBits   : string;
-  i       : Integer;
-  iTamanho: Integer;
-begin
-  sBits := '00000000';
-  sBits[ANumCPU] := '1';
-  sBits := ReverseString(sBits);
-  iTamanho := Length(sBits);
-
-  for i := iTamanho downto 1 do
-  begin
-    if (sBits[i] = '1') then
-      Self.FAfinidade := Self.FAfinidade + (1 shl (iTamanho - i));
-  end;
-end;
-
-procedure TThreadImportacao.Execute;
-const
-  C_INSTRUCAO_SQL = 'INSERT INTO NEW_TABLE (ID, NOME_CLIENTE, CNPJ, ENDERECO, TELEFONE_1, TELEFONE_2, EMAIL) VALUES (%s, ''%s'', ''%s'', ''%s'', ''%s'', ''%s'', ''%s'');';
-var
-  _csv         : TextFile;
-  sLinha       : string;
-  slAuxiliar   : TStringList;
-  sInstrucaoSQL: string;
-  rTempo       : TStopwatch;
-  i            : Integer;
-begin
-  inherited;
-  rTempo := TStopwatch.StartNew;
-
-  // Define a máscara de afinidade, se diferente de zeroS
-  SetThreadAffinityMask(Self.Handle, Self.FAfinidade);
 
   // Instancia o StringList
   slAuxiliar := TStringList.Create;
@@ -235,12 +194,14 @@ begin
       sInstrucaoSQL := Format(C_INSTRUCAO_SQL, [slAuxiliar[0], slAuxiliar[1], slAuxiliar[2], slAuxiliar[3], slAuxiliar[4], slAuxiliar[5], slAuxiliar[6]]);
 
       // Executa a instrução SQL
-      Self.FQuery.SQL.Text := sInstrucaoSQL;
-      Self.FQuery.ExecSQL;
+      oDatabase.ExecuteDirect(sInstrucaoSQL);
     end;
   finally
     rTempo.Stop;
     Self.FTempoSegundos := rTempo.ElapsedMilliseconds div 1000;
+
+    oDatabase.Close;
+    oDatabase.Free;
     slAuxiliar.Free;
     CloseFile(_csv);
   end;
@@ -249,7 +210,6 @@ end;
 procedure TfImportacao.Button1Click(Sender: TObject);
 var
   sNomeArquivo: string;
-  iPrioridade : Integer;
   oEsvaziador : TThreadEsvaziarTabela;
 begin
   // Seleciona o arquivo
@@ -258,7 +218,6 @@ begin
   // Desabilita os botões
   Self.Button1.Enabled := False;
   Self.Button2.Enabled := False;
-  Self.ComboBox1.Enabled := False;
 
   // Esvazia a tabela
   oEsvaziador := TThreadEsvaziarTabela.Create(True);
@@ -267,12 +226,8 @@ begin
 
   WaitForSingleObject(oEsvaziador.Handle, INFINITE);
 
-  // Determina o Ord() da prioridade do thread
-  iPrioridade := GetEnumValue(TypeInfo(TThreadPriority), Self.ComboBox1.Text);
-
   // Configura e inicializa o thread, definindo a prioridade
   Self.FThreadUnica := TThreadImportacao.Create(sNomeArquivo);
-  Self.FThreadUnica.Priority := TThreadPriority(iPrioridade);
   Self.FThreadUnica.FreeOnTerminate := True;
   Self.FThreadUnica.OnTerminate := Self.QuandoTerminarThread;
   Self.FThreadUnica.Start;
@@ -288,7 +243,6 @@ begin
   // Desabilita os botões
   Self.Button1.Enabled := False;
   Self.Button2.Enabled := False;
-  Self.ComboBox1.Enabled := False;
 
   // Configura e inicializa o thread
   Self.FThreadGerente := TThreadGerente.Create(sNomeArquivo);
@@ -350,7 +304,7 @@ begin
     // Aguarda o término
     oThread.WaitFor;
 
-    // Libera a instância
+    // Libera as instâncias
     oThread.Free;
   end;
 end;
@@ -388,7 +342,6 @@ begin
   Self.lQuantidade.Caption := FormatFloat('#,###,##0', iLinhas);
   Self.Button1.Enabled := True;
   Self.Button2.Enabled := True;
-  Self.ComboBox1.Enabled := True;
 end;
 
 { TThreadGerente }
@@ -433,7 +386,7 @@ begin
 
     // Varre-se de tras pára frente para definir a afinidade do
     // último núcleo ao primeiro
-    for iNumProcessador := iQuantProcessador downto 1 do
+    for iNumProcessador := 1 to iQuantProcessador do
     begin
       // Zera a quantidade lida
       iTotalLido := 0;
@@ -463,7 +416,7 @@ begin
 
           // Se estiver no último arquivo não precisa
           // mais verificações
-          if (iNumProcessador = 1) then
+          if (iNumProcessador = iQuantProcessador) then
           begin
             Continue;
           end;
@@ -495,10 +448,6 @@ begin
         iPosArray := iNumProcessador - 1;
         // Cria um thread de importação passando o arquivo de saída
         Self.FImportadores[iPosArray] := TThreadImportacao.Create(sNomeArquivoSaida);
-        // Define a afinade com o núcleo correspondente
-        Self.FImportadores[iPosArray].DefinirAfinidade(iNumProcessador);
-        // Aumenta a prioridade do thread
-        Self.FImportadores[iPosArray].Priority := tpHigher;
         // Inicia o thread
         Self.FImportadores[iPosArray].Start;
       end;
@@ -514,17 +463,10 @@ var
   aHandles  : array [1 .. MAXBYTE] of THandle;
   _crono    : TStopwatch;
   iNumThread: Integer;
-  cRet      : Cardinal;
 begin
   inherited;
   _crono := TStopwatch.StartNew;
   try
-    // Define a máscara de afinidade para o primeiro nucleo
-    SetThreadAffinityMask(Self.Handle, 1);
-
-    // Aumenta a prioridade do thread
-    Self.Priority := tpHighest;
-
     // Esvazia a tabela
     Self.FEsvaziador := TThreadEsvaziarTabela.Create(True);
     Self.FEsvaziador.Start;
@@ -535,9 +477,6 @@ begin
     // de importação correspondente
     Self.DividirArquivo;
 
-    // Baixa a prioridade
-    Self.Priority := tpLowest;
-
     // Anota os manipuladores dos threads
     for iNumThread := 0 to High(Self.FImportadores) do
     begin
@@ -545,7 +484,7 @@ begin
     end;
 
     // Aguarda o términos dos threads de importação
-    cRet := WaitForMultipleObjects(Length(Self.FImportadores), @aHandles, True, INFINITE);
+    WaitForMultipleObjects(Length(Self.FImportadores), @aHandles, True, INFINITE);
 
     // Determina a quantidade de linhas processadas
     for iNumThread := 0 to High(Self.FImportadores) do
@@ -559,7 +498,6 @@ begin
     _crono.Stop;
     Self.FTempoSegundos := _crono.ElapsedMilliseconds div 1000;
   end;
-
 end;
 
 procedure TThreadGerente.TerminatedSet;
@@ -608,7 +546,7 @@ var
   oDatabase: TSQLConnection;
 begin
   inherited;
-
+  // Conexão com o banco de dados
   oDatabase := TSQLConnection.Create(nil);
   try
     with oDatabase do
@@ -621,7 +559,8 @@ begin
       Open;
     end;
 
-    oDatabase.ExecuteDirect('DELETE FROM NEW_TABLE');
+    // Instrução SQL de deleção
+    oDatabase.ExecuteDirect('DELETE FROM TBCONTATOS');
   finally
     oDatabase.Close;
     oDatabase.Free;

@@ -55,35 +55,17 @@ object fImportacao: TfImportacao
     TabOrder = 0
     OnClick = Button1Click
   end
-  object ComboBox1: TComboBox
-    Left = 135
-    Top = 17
-    Width = 112
-    Height = 21
-    Style = csDropDownList
-    ItemIndex = 3
-    TabOrder = 1
-    Text = 'tpNormal'
-    Items.Strings = (
-      'tpIdle'
-      'tpLowest'
-      'tpLower'
-      'tpNormal'
-      'tpHigher'
-      'tpHighest'
-      'tpTimeCritical')
-  end
   object Button2: TButton
-    Left = 8
-    Top = 58
+    Left = 231
+    Top = 15
     Width = 121
     Height = 25
     Caption = 'V'#225'rios Threads!'
-    TabOrder = 2
+    TabOrder = 1
     OnClick = Button2Click
   end
   object OpenTextFileDialog1: TOpenTextFileDialog
-    Left = 256
-    Top = 48
+    Left = 168
+    Top = 40
   end
 end
